@@ -1,4 +1,4 @@
-function HabitItem({ habit, handleToggleHabit, handleDeleteHabit }) {
+function HabitItem({ habit, handleToggleHabit, handleDeleteHabit, handleEditHabit, today }) {
   const hasAllDays = habit.days && habit.days.length === 7
 
   return (
@@ -21,17 +21,30 @@ function HabitItem({ habit, handleToggleHabit, handleDeleteHabit }) {
           {!habit.days || habit.days.length === 0
             ? "Tous les jours"
             : hasAllDays
-            ? "Tous les jours"
-            : habit.days.join(" • ")}
+              ? "Tous les jours"
+              : habit.days.join(" • ")}
         </p>
+
+        <span className="habit-day-badge">
+          {habit.days?.includes(today) ? "Aujourd’hui" : ""}
+        </span>
       </div>
 
-      <button
-        className="btn btn-delete"
-        onClick={() => handleDeleteHabit(habit.id)}
-      >
-        Supprimer
-      </button>
+      <div className="habit-actions">
+        <button
+          className="btn btn-edit"
+          onClick={() => handleEditHabit(habit)}
+        >
+          Modifier
+        </button>
+
+        <button
+          className="btn btn-delete"
+          onClick={() => handleDeleteHabit(habit.id)}
+        >
+          Supprimer
+        </button>
+      </div>
     </li>
   )
 }

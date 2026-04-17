@@ -1,6 +1,6 @@
 import HabitItem from "./HabitItem"
 
-function HabitList({ habits, handleToggleHabit, handleDeleteHabit, filter }) {
+function HabitList({ habits, handleToggleHabit, handleDeleteHabit, handleEditHabit, filter, today }) {
   if (habits.length === 0) {
     let emptyMessage = "Aucune habitude à afficher."
 
@@ -23,11 +23,13 @@ function HabitList({ habits, handleToggleHabit, handleDeleteHabit, filter }) {
     <ul className="habit-list">
       {habits.map((habit) => (
         <HabitItem
-          key={habit.id}
-          habit={habit}
-          handleToggleHabit={handleToggleHabit}
-          handleDeleteHabit={handleDeleteHabit}
-        />
+            key={habit.id}
+            habit={habit}
+            handleToggleHabit={handleToggleHabit}
+            handleDeleteHabit={handleDeleteHabit}
+            handleEditHabit={handleEditHabit}
+            today={today}
+            />
       ))}
     </ul>
   )

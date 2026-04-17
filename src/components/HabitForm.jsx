@@ -7,13 +7,14 @@ function HabitForm({
   weekDays,
   selectedDays,
   handleToggleDay,
-  errorMessage
+  errorMessage,
+  editingHabitId
 }) {
   const inputRef = useRef(null)
 
-  function handleAddHabitWithFocus() {
-    handleAddHabit()
-    inputRef.current.focus()
+  async function handleAddHabitWithFocus() {
+    await handleAddHabit()
+    inputRef.current?.focus()
   }
 
   return (
@@ -35,7 +36,7 @@ function HabitForm({
         />
 
         <button className="btn btn-add" onClick={handleAddHabitWithFocus}>
-          Ajouter
+          {editingHabitId ? "Enregistrer" : "Ajouter"}
         </button>
       </div>
 
