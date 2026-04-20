@@ -1,31 +1,31 @@
 import { useEffect, useState } from "react"
 import HabitForm from "./components/HabitForm"
 import HabitList from "./components/HabitList"
+import {
+  fetchHabits,
+  createHabit,
+  toggleHabit,
+  deleteHabit,
+  updateHabit
+} from "./services/habitService"
+
+import LoginForm from "./components/LoginForm"
+import { getToken, loginUser, removeToken } from "./services/auth"
 
 function App() {
-  const [habits, setHabits] = useState(() => {
-    const savedHabits = localStorage.getItem("habits")
-
-    if (savedHabits) {
-      return JSON.parse(savedHabits)
-    }
-
-    return [
-      { id: 1, title: "Boire de l’eau", done: false, days: [] },
-      { id: 2, title: "Faire du sport", done: false, days: ["lundi", "mercredi", "vendredi"] },
-      { id: 3, title: "Lire 20 min", done: false, days: [] },
-      { id: 4, title: "Méditer", done: false, days: ["mardi", "jeudi", "dimanche"] }
-    ]
-  })
-
-  const today = new Date().toLocaleDateString("fr-FR", {
-    weekday: "long"
-  })
-
+  const [habits, setHabits] = useState([])
   const [newHabit, setNewHabit] = useState("")
   const [filter, setFilter] = useState("today")
   const [selectedDays, setSelectedDays] = useState([])
   const [errorMessage, setErrorMessage] = useState("")
+  const [authError, setAuthError] = useState("")
+  const [isLoggedIn, setIsLoggedIn] = useState(!!getToken())
+  const [editingHabitId, setEditingHabitId] = useState(null)
+  const [selectedFilterDay, setSelectedFilterDay] = useState("")
+
+  const today = new Date()
+    .toLocaleDateString("fr-FR", { weekday: "long" })
+    .toLowerCase()
 
   const weekDays = [
     "lundi",
@@ -38,8 +38,50 @@ function App() {
   ]
 
   useEffect(() => {
-    localStorage.setItem("habits", JSON.stringify(habits))
-  }, [habits])
+    if (isLoggedIn) {
+      loadHabits()
+    }
+  }, [isLoggedIn])
+
+  function handleEditHabit(habit) {
+    setNewHabit(habit.title)
+    setSelectedDays(habit.days || [])
+    setEditingHabitId(habit.id)
+    setErrorMessage("")
+  }
+
+  async function handleLogin(credentials) {
+    try {
+      await loginUser(credentials)
+      setIsLoggedIn(true)
+      setAuthError("")
+      setErrorMessage("")
+    } catch (error) {
+      setAuthError("Connexion impossible. Vérifie tes identifiants.")
+      console.error(error)
+    }
+  }
+
+  function handleLogout() {
+    removeToken()
+    setIsLoggedIn(false)
+    setHabits([])
+    setNewHabit("")
+    setSelectedDays([])
+    setEditingHabitId(null)
+  }
+
+ async function loadHabits() {
+    try {
+      const data = await fetchHabits()
+      setHabits(Array.isArray(data) ? data : [])
+      setErrorMessage("")
+    } catch (error) {
+      setHabits([])
+      setErrorMessage("Impossible de charger les habitudes.")
+      console.error(error)
+    }
+  }
 
   function handleToggleDay(day) {
     if (selectedDays.includes(day)) {
@@ -49,6 +91,7 @@ function App() {
 
     setSelectedDays([...selectedDays, day])
   }
+
   function normalizeText(text) {
     return text
       .trim()
@@ -57,7 +100,8 @@ function App() {
       .replace(/[\u0300-\u036f]/g, "")
   }
 
-  function handleAddHabit() {
+
+  async function handleAddHabit() {
     const trimmedHabit = newHabit.trim()
 
     if (trimmedHabit === "") {
@@ -68,7 +112,9 @@ function App() {
     const normalizedNewHabit = normalizeText(trimmedHabit)
 
     const habitAlreadyExists = habits.some(
-      (habit) => normalizeText(habit.title) === normalizedNewHabit
+      (habit) =>
+        normalizeText(habit.title) === normalizedNewHabit &&
+        habit.id !== editingHabitId
     )
 
     if (habitAlreadyExists) {
@@ -76,115 +122,199 @@ function App() {
       return
     }
 
-    const habitToAdd = {
-      id: Date.now(),
-      title: trimmedHabit,
-      done: false,
-      days: [...selectedDays]
+    try {
+      if (editingHabitId) {
+        await updateHabit(editingHabitId, {
+          title: trimmedHabit,
+          days: [...selectedDays]
+        })
+      } else {
+        await createHabit({
+          title: trimmedHabit,
+          days: [...selectedDays]
+        })
+      }
+
+      await loadHabits()
+      setNewHabit("")
+      setSelectedDays([])
+      setEditingHabitId(null)
+      setErrorMessage("")
+    } catch (error) {
+      setErrorMessage(
+        editingHabitId
+          ? "Impossible de modifier l’habitude."
+          : "Impossible de créer l’habitude."
+      )
+      console.error(error)
+    }
+  }
+
+ async function handleDeleteHabit(idToDelete) {
+  try {
+    await deleteHabit(idToDelete)
+    await loadHabits()
+
+    if (editingHabitId === idToDelete) {
+      setNewHabit("")
+      setSelectedDays([])
+      setEditingHabitId(null)
     }
 
-    setHabits([...habits, habitToAdd])
-    setNewHabit("")
-    setSelectedDays([])
     setErrorMessage("")
+  } catch (error) {
+    setErrorMessage("Impossible de supprimer l’habitude.")
+    console.error(error)
   }
-
-  function handleDeleteHabit(idToDelete) {
-    const updatedHabits = habits.filter((habit) => habit.id !== idToDelete)
-    setHabits(updatedHabits)
-  }
-
-  function handleToggleHabit(idToToggle) {
-    const updatedHabits = habits.map((habit) => {
-      if (habit.id === idToToggle) {
-        return {
-          ...habit,
-          done: !habit.done
-        }
-      }
-
-      return habit
-    })
-
-    setHabits(updatedHabits)
-  }
-
-  const completedHabits = habits.filter((habit) => habit.done).length
-  const totalHabits = habits.length
-
-  const filteredHabits = habits.filter((habit) => {
-    if (filter === "done") return habit.done
-    if (filter === "todo") return !habit.done
-
-    if (filter === "today") {
-      if (!habit.days || habit.days.length === 0) {
-        return true
-      }
-
-      return habit.days.includes(today)
+}
+  
+  async function handleToggleHabit(idToToggle) {
+    try {
+      await toggleHabit(idToToggle)
+      await loadHabits()
+      setErrorMessage("")
+    } catch (error) {
+      setErrorMessage("Impossible de modifier l’habitude.")
+      console.error(error)
     }
+  }
 
+
+  function isHabitPlannedForDay(habit, day) {
+  if (!habit.days || habit.days.length === 0) {
     return true
-  })
+  }
 
-  return (
+  return habit.days.includes(day)
+}
+
+  const filteredHabits = Array.isArray(habits)
+    ? habits.filter((habit) => {
+        if (filter === "all") {
+          return true
+        }
+
+        if (filter === "today") {
+          return isHabitPlannedForDay(habit, today)
+        }
+
+        if (filter === "todo") {
+          return isHabitPlannedForDay(habit, today) && !habit.done
+        }
+
+        if (filter === "done") {
+          return isHabitPlannedForDay(habit, today) && habit.done
+        }
+
+        if (filter === "day") {
+          return isHabitPlannedForDay(habit, selectedFilterDay)
+        }
+
+        return true
+      })
+    : []
+
+    const completedHabits = filteredHabits.filter((habit) => habit.done).length
+    const totalHabits = filteredHabits.length
+
+    return (
     <main className="app">
       <div className="container">
         <h1 className="app-title">Habit Tracker</h1>
 
-        <p className="today-label">Aujourd’hui : {today}</p>
+        {!isLoggedIn ? (
+          <LoginForm handleLogin={handleLogin} authError={authError} />
+        ) : (
+          <>
+            <div className="app-topbar">
+              <div>
+                <p className="today-label">Aujourd’hui : {today}</p>
+                <p className="habit-counter">
+                  {completedHabits} habitude{completedHabits > 1 ? "s" : ""} terminée
+                  {completedHabits > 1 ? "s" : ""} sur {totalHabits}
+                </p>
+              </div>
 
-        <p className="habit-counter">
-          {completedHabits} habitude{completedHabits > 1 ? "s" : ""} terminée
-          {completedHabits > 1 ? "s" : ""} sur {totalHabits}
-        </p>
+              <button className="btn btn-logout" onClick={handleLogout}>
+                Déconnexion
+              </button>
+            </div>
 
-        <div className="filters">
-          <button
-            className={filter === "today" ? "btn btn-filter active" : "btn btn-filter"}
-            onClick={() => setFilter("today")}
-          >
-            Aujourd’hui
-          </button>
+            <div className="filters">
+              <button
+                className={filter === "today" ? "btn btn-filter active" : "btn btn-filter"}
+                onClick={() => {setFilter("today") 
+                  setSelectedFilterDay("")
+                }}
+              >
+                Aujourd’hui
+              </button>
 
-          <button
-            className={filter === "all" ? "btn btn-filter active" : "btn btn-filter"}
-            onClick={() => setFilter("all")}
-          >
-            Toutes
-          </button>
+              <button
+                className={filter === "all" ? "btn btn-filter active" : "btn btn-filter"}
+                onClick={() => {setFilter("all")
+                  setSelectedFilterDay("")
+                }}
+              >
+                Toutes
+              </button>
 
-          <button
-            className={filter === "todo" ? "btn btn-filter active" : "btn btn-filter"}
-            onClick={() => setFilter("todo")}
-          >
-            À faire
-          </button>
+              <button
+                className={filter === "todo" ? "btn btn-filter active" : "btn btn-filter"}
+                onClick={() => {setFilter("todo")
+                  setSelectedFilterDay("")
+                }}
+              >
+                À faire
+              </button>
 
-          <button
-            className={filter === "done" ? "btn btn-filter active" : "btn btn-filter"}
-            onClick={() => setFilter("done")}
-          >
-            Terminées
-          </button>
-        </div>
+              <button
+                className={filter === "done" ? "btn btn-filter active" : "btn btn-filter"}
+                onClick={() => {setFilter("done")
+                  setSelectedFilterDay("")
+                }}
+              >
+                Terminées
+              </button>
+            </div>
+            <p className="section-label">Consulter par jour</p>
 
-        <HabitForm
-          newHabit={newHabit}
-          setNewHabit={setNewHabit}
-          handleAddHabit={handleAddHabit}
-          weekDays={weekDays}
-          selectedDays={selectedDays}
-          handleToggleDay={handleToggleDay}
-          errorMessage={errorMessage}
-        />
+            <div className="day-filters">
+              {weekDays.map((day) => (
+                <button
+                  key={day}
+                  className={selectedFilterDay === day ? "btn btn-day-filter active" : "btn btn-day-filter"}
+                  onClick={() => {
+                    setFilter("day")
+                    setSelectedFilterDay(day)
+                  }}
+                >
+                  {day}
+                </button>
+              ))}
+            </div>
 
-       <HabitList
-        habits={filteredHabits}
-        handleToggleHabit={handleToggleHabit}
-        handleDeleteHabit={handleDeleteHabit}
-        filter={filter}
-      />
+            <HabitForm
+              newHabit={newHabit}
+              setNewHabit={setNewHabit}
+              handleAddHabit={handleAddHabit}
+              weekDays={weekDays}
+              selectedDays={selectedDays}
+              handleToggleDay={handleToggleDay}
+              errorMessage={errorMessage}
+              editingHabitId={editingHabitId}
+            />
+
+            <HabitList
+              habits={filteredHabits}
+              handleToggleHabit={handleToggleHabit}
+              handleDeleteHabit={handleDeleteHabit}
+              handleEditHabit={handleEditHabit}
+              filter={filter}
+              today={today}
+            />
+          </>
+        )}
       </div>
     </main>
   )
