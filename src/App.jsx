@@ -179,35 +179,43 @@ function App() {
     }
   }
 
-  const completedHabits = Array.isArray(habits)
-  ? habits.filter((habit) => habit.done).length
-  : 0
-  const totalHabits = Array.isArray(habits) ? habits.length : 0
+
+  function isHabitPlannedForDay(habit, day) {
+  if (!habit.days || habit.days.length === 0) {
+    return true
+  }
+
+  return habit.days.includes(day)
+}
 
   const filteredHabits = Array.isArray(habits)
     ? habits.filter((habit) => {
-        if (filter === "done") return habit.done
-        if (filter === "todo") return !habit.done
+        if (filter === "all") {
+          return true
+        }
 
         if (filter === "today") {
-          if (!habit.days || habit.days.length === 0) {
-            return true
-          }
+          return isHabitPlannedForDay(habit, today)
+        }
 
-          return habit.days.includes(today)
+        if (filter === "todo") {
+          return isHabitPlannedForDay(habit, today) && !habit.done
+        }
+
+        if (filter === "done") {
+          return isHabitPlannedForDay(habit, today) && habit.done
         }
 
         if (filter === "day") {
-          if (!habit.days || habit.days.length === 0) {
-            return true
-          }
-
-          return habit.days.includes(selectedFilterDay)
+          return isHabitPlannedForDay(habit, selectedFilterDay)
         }
 
         return true
       })
     : []
+
+    const completedHabits = filteredHabits.filter((habit) => habit.done).length
+    const totalHabits = filteredHabits.length
 
     return (
     <main className="app">
@@ -275,7 +283,7 @@ function App() {
               {weekDays.map((day) => (
                 <button
                   key={day}
-                  className={selectedFilterDay === day ? "btn btn-day-filter active" : "btn btn-filter"}
+                  className={selectedFilterDay === day ? "btn btn-day-filter active" : "btn btn-day-filter"}
                   onClick={() => {
                     setFilter("day")
                     setSelectedFilterDay(day)
