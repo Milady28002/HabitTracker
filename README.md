@@ -1,16 +1,58 @@
-# React + Vite
+# Habit Tracker - Frontend
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+## Description
 
-Currently, two official plugins are available:
+Ce projet correspond au frontend de l’application **Habit Tracker**, développée dans le cadre de ma formation Graduate Développeur Web Full Stack.
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+L’application permet à un utilisateur connecté de gérer ses habitudes quotidiennes : création, modification, suppression, validation par jour, filtrage, consultation des statistiques et suivi de l’historique.
 
-## React Compiler
+Le frontend communique avec une API REST développée en Symfony.
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+## Fonctionnalités principales
 
-## Expanding the ESLint configuration
+- Connexion utilisateur
+- Déconnexion
+- Affichage des habitudes
+- Création d’une habitude
+- Modification d’une habitude
+- Suppression d’une habitude
+- Validation d’une habitude selon une date
+- Filtres par statut : aujourd’hui, toutes, à faire, terminées
+- Filtres par jour de la semaine
+- Affichage de statistiques du jour
+- Consultation de l’historique
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+## Stack technique
+
+- React
+- JavaScript
+- Vite
+- CSS
+- Fetch API
+- Docker
+
+## Architecture du projet
+
+```txt
+src/
+|__ components/
+│   |__ HabitForm.jsx
+│   |__ HabitList.jsx
+│   |__ HabitItem.jsx
+│   |__ LoginForm.jsx
+│   |__ Stats.jsx
+│   |__ History.jsx
+|__ services/
+│   |__ api.js
+│   |__ auth.js
+│   |__ habitService.js
+│   |__ statsService.js
+|__ App.jsx
+|__ main.jsx
+|__ main.css
+```
+
+## Installation
+Cloner le projer:
+```bash
+git clone <https://github.com/Milady28002/habit-tracker.git>
