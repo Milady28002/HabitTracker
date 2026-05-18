@@ -53,7 +53,7 @@ src/
 ```
 
 ## Installation
-Cloner le projer:
+Cloner le projet:
 ```bash
 git clone <https://github.com/Milady28002/habit-tracker.git>
 ```
